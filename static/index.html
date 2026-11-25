@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>隧道代理 IP 质量测试</title>
+<link rel="icon" href="/static/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/static/favicon.ico" sizes="32x32">
+<link rel="apple-touch-icon" href="/static/favicon.png">
+<link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <svg viewBox="0 0 64 64" width="22" height="22" aria-hidden="true">
+      <defs>
+        <linearGradient id="brand-bg" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stop-color="#6b96ff"/>
+          <stop offset="1" stop-color="#3d6df0"/>
+        </linearGradient>
+      </defs>
+      <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#brand-bg)"/>
+      <circle cx="32" cy="34" r="20" fill="none" stroke="#ffffff" stroke-opacity=".26" stroke-width="2.5"/>
+      <circle cx="32" cy="34" r="12" fill="none" stroke="#ffffff" stroke-opacity=".42" stroke-width="2.5"/>
+      <path d="M32 34 L32 14 A20 20 0 0 1 46.14 19.86 Z" fill="#ffffff" fill-opacity=".5"/>
+      <circle cx="32" cy="34" r="4.5" fill="#ffffff"/>
+      <circle cx="46.14" cy="19.86" r="3.4" fill="#ffffff"/>
+      <circle cx="46.14" cy="19.86" r="6.6" fill="none" stroke="#ffffff" stroke-opacity=".55" stroke-width="1.6"/>
+    </svg>
+    隧道代理 IP 质量测试
+  </div>
+  <nav class="tabs">
+    <button class="tab active" data-tab="vendors">厂商管理</button>
+    <button class="tab" data-tab="runs">测试任务</button>
+    <button class="tab" data-tab="monitor">运行监控</button>
+    <button class="tab" data-tab="compare">对比分析</button>
+  </nav>
+</header>
+
+<main>
+  <!-- 厂商管理 -->
+  <section id="tab-vendors" class="panel active">
+    <div class="toolbar">
+      <button id="btn-add-vendor" class="btn primary">＋ 新增厂商</button>
+      <span class="hint">配置各隧道厂商的地址与账密；「测试」会经隧道真实取一次出口 IP 验证连通。</span>
+    </div>
+    <div class="card">
+      <div class="scroll-x">
+      <table id="vendors-table">
+        <thead><tr>
+          <th>ID</th><th>名称</th><th>协议</th><th>隧道地址</th><th>连通</th><th>状态</th><th>操作</th>
+        </tr></thead>
+        <tbody id="vendors-body"></tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 测试任务 -->
+  <section id="tab-runs" class="panel">
+    <div class="card">
+      <h3>新建对比测试</h3>
+      <div class="form-grid">
+        <label>任务名称<input id="run-name" placeholder="可选，如 KDLvsXX-晚高峰"></label>
+        <label>运行时长（分钟，到时自动停止）<input id="run-duration" type="number" value="60" min="1" step="1"></label>
+        <label>采样间隔（秒/次）<input id="run-interval" type="number" value="5" min="1" step="1"></label>
+        <label>单次超时（秒）<input id="run-timeout" type="number" value="10" min="3" step="1"></label>
+        <label class="wide">目标端点（同一脚本统一打这个端点，保证口径一致）<input id="run-target" value="https://ifconfig.me/ip"></label>
+      </div>
+      <div class="vendor-picker" id="run-vendors"></div>
+      <div class="toolbar">
+        <button id="btn-start-run" class="btn primary">▶ 启动测试</button>
+        <span class="hint">选中多个厂商将同时并行采样，用于跨家交集对比；任务到时自动停止，也可手动停止。</span>
+      </div>
+    </div>
+    <div class="card">
+      <h3>历史任务</h3>
+      <div class="toolbar">
+        <button id="btn-batch-delete" class="btn danger" disabled>删除选中（<span id="sel-count">0</span>）</button>
+        <span class="hint">勾选任务可批量删除；运行中的任务需先停止。</span>
+      </div>
+      <div class="scroll-x">
+      <table id="runs-table">
+        <thead><tr>
+          <th class="check-cell"><input type="checkbox" id="runs-check-all" title="全选（运行中除外）"></th>
+          <th>ID</th><th>名称</th><th>厂商</th><th>时长 / 间隔</th><th>状态</th><th>开始时间</th><th>采样</th><th>操作</th>
+        </tr></thead>
+        <tbody id="runs-body"></tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 运行监控 -->
+  <section id="tab-monitor" class="panel">
+    <div class="toolbar">
+      <select id="monitor-select" style="min-width:280px"></select>
+      <button id="btn-stop-run" class="btn danger">■ 停止任务</button>
+      <span id="monitor-meta" class="hint"></span>
+    </div>
+    <div id="monitor-cards"></div>
+  </section>
+
+  <!-- 对比分析 -->
+  <section id="tab-compare" class="panel">
+    <div class="toolbar">
+      <select id="compare-select" style="min-width:280px"></select>
+      <label class="inline">交集阈值 <input id="cmp-threshold" type="number" value="15" min="1" max="100" style="width:72px"> %</label>
+      <button id="btn-refresh-compare" class="btn">刷新</button>
+      <span class="hint">交集&lt;阈值 判定「真不太相同」。</span>
+    </div>
+    <div id="compare-body"></div>
+    <div class="card">
+      <h3>采样明细</h3>
+      <div class="toolbar">
+        <select id="detail-vendor" style="min-width:200px"></select>
+        <a id="btn-export" class="btn" href="#">导出 CSV</a>
+        <span id="detail-count" class="hint"></span>
+      </div>
+      <div class="scroll-x">
+      <table id="samples-table">
+        <thead><tr>
+          <th>时间</th><th>状态</th><th>出口 IP</th><th>延迟 ms</th><th>错误</th><th>端点</th>
+        </tr></thead>
+        <tbody id="samples-body"></tbody>
+      </table>
+      </div>
+    </div>
+  </section>
+</main>
+
+<dialog id="batch-delete-modal">
+  <h3>确认删除任务</h3>
+  <p id="batch-delete-text"></p>
+  <div class="modal-actions">
+    <button type="button" class="btn" id="batch-delete-cancel">取消</button>
+    <button type="button" class="btn danger" id="batch-delete-confirm">确认删除</button>
+  </div>
+</dialog>
+
+<dialog id="vendor-modal">
+  <form id="vendor-form">
+    <h3 id="vendor-modal-title">新增厂商</h3>
+    <div class="form-grid" style="grid-template-columns:repeat(2,1fr)">
+      <label>名称 *<input name="name" required></label>
+      <label>协议
+        <select name="protocol">
+          <option value="http">HTTP(S) 隧道</option>
+          <option value="socks5">SOCKS5 隧道</option>
+        </select>
+      </label>
+      <label>隧道地址 host<input name="host" placeholder="tunnel.vendor.com"></label>
+      <label>端口<input name="port" type="number" placeholder="如 15818"></label>
+      <label>账号<input name="username" autocomplete="off"></label>
+      <label>密码<input name="password" type="password" autocomplete="new-password"></label>
+      <label class="wide">完整代理串（可选，优先于上方字段；支持 http://user:pass@host:port 或 host:port:user:pass）<input name="raw_url" placeholder="http://user:pass@tunnel.vendor.com:8821"></label>
+      <label class="wide">备注<input name="notes" placeholder="套餐、规格、价格等"></label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn" id="vendor-cancel">取消</button>
+      <button type="submit" class="btn primary" id="vendor-save">保存</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

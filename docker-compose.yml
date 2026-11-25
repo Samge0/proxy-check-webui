@@ -1,0 +1,27 @@
+services:
+  proxy-check-webui:
+    build: .
+    image: tunnel-proxy-check-webui:latest
+    container_name: tunnel-proxy-check-webui
+    ports:
+      # 宿主机端口读 .env 的 WEBUI_PORT（默认 8821），容器内固定 8821
+      - "${WEBUI_PORT:-8821}:8821"
+    environment:
+      WEBUI_HOST: 0.0.0.0
+      WEBUI_PORT: 8821
+      TZ: Asia/Shanghai
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8821/api/vendors', timeout=4)",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
