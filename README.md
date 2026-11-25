@@ -83,3 +83,12 @@ GET             /api/runs/{id}/summary     指标 + 交集矩阵
 GET             /api/runs/{id}/samples?vendor_id=  采样明细
 GET             /api/runs/{id}/export?vendor_id=   CSV 导出
 ```
+
+## 相关截图
+<img width="1077" height="491" alt="image" src="https://github.com/user-attachments/assets/5789ce96-a9d6-4a24-b7cf-8023d3a5152a" />
+<img width="1084" height="731" alt="image" src="https://github.com/user-attachments/assets/05f00691-0167-4da0-96f1-df814cdbc122" />
+<img width="883" height="455" alt="image" src="https://github.com/user-attachments/assets/787e968c-2fb2-445a-afd1-5f8d4d3f8a73" />
+<img width="1071" height="955" alt="image" src="https://github.com/user-attachments/assets/0e905ed0-656e-41a7-aae4-405e5f89d8cc" />
+
+
+
